@@ -1,0 +1,171 @@
+6.	Server Code
+
+	server.js file
+------------------------------------------------------
+var leds = require('./leds.js');	//import leds file
+var temp = require('./temp.js');	//import temperature file
+var gas = require('./gas.js');	//import gas file
+
+var express = require('express');
+var myParser = require("body-parser");
+var app = express();
+
+app.use( myParser.json() );
+app.use(express.json());
+// Add headers
+app.use(function (req, res, next) {
+	// Website you wish to allow to connect
+	res.setHeader('Access-Control-Allow-Origin', 'http://localhost:4200');
+	// Request methods you wish to allow
+	res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+	// Request headers you wish to allow
+	res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
+	// Set to true if you need the website to include cookies in the requests sent
+	// to the API (e.g. in case you use sessions)
+	res.setHeader('Access-Control-Allow-Credentials', true);
+	//the data transmitted is of type json
+	res.header('Content-Type', 'application/json');
+	// Pass to next layer of middleware
+	next();
+});
+
+//data for the bedroom
+app.post('/view-house/bedroom', (req, res) => {
+	var ledValue = req.body.led;
+	leds.turnBedroomLed(ledValue);
+	res.status(200).end();
+})
+
+app.get('/view-house/bedroom', (req, res) => {
+	var value = temp.getTemp();
+	res.send(value);
+	res.status(200).end();
+})
+
+//data for the living room
+app.post('/view-house/living-room', (req, res) => {
+	var ledValue = req.body.led;
+	leds.turnLivingLed(ledValue);
+	res.status(200).end();
+})
+
+app.get('/view-house/living-room', (req, res) => {
+	var value = temp.getTemp();
+	res.send(value);
+	res.status(200).end();
+})
+
+
+//data for the kitchen
+app.post('/view-house/kitchen', (req, res) => {
+	var ledValue = req.body.led;
+	leds.turnKitchenLed(ledValue);
+	res.status(200).end();
+})
+
+app.get('/view-house/kitchen', (req, res) => {
+	var value = temp.getTemp();
+	console.log(value);
+	res.send(value);
+	res.status(200).end();
+})
+
+var server = app.listen(5000);
+-----------------------------------------------
+
+
+
+		gas.js file
+-----------------------------------------------------------------------------
+var Gpio = require('onoff').Gpio; //include onoff to interact with the GPIO
+var gas = new Gpio(16, 'in'); //use GPIO pin 16 as input
+var debounce = require('debounce');
+var exports = module.exports = {};
+
+/*function checkValue(err, value) {
+	  if (err) { //if an error
+	    	console.error('There was an error', err); //output error message to console
+	  	return;
+	  }
+	 return !value;
+}
+ = gas.watch(debounce(checkValue,200));
+*/
+
+exports.checkGas = function(){
+	/*var jsonData = {
+		"gas" : gas.readSync()
+	};*/
+	return gas.readSync();
+}
+
+function unexportOnClose() { //function to run when exiting program
+	  gas.unexport(); // Unexport Button GPIO to free resources
+};
+
+process.on('SIGINT', unexportOnClose); //function to run when user closes using ctrl+c
+-------------------------------------------------------------------------
+
+
+		temp.js file
+--------------------------------------------------------------------
+var rpiDhtSensor = require('rpi-dht-sensor');
+var dht = new rpiDhtSensor.DHT11(18);
+var Gpio = require('onoff').Gpio; //include onoff to interact with the GPIO
+var gas = new Gpio(4, 'in'); //use GPIO pin 4 as input, and 'both' button presses, and releases should be handled
+var exports = module.exports = {};
+
+exports.getTemp = function() {
+  	var readout = dht.read();
+	var jsonData = {
+		"temperature" : readout.temperature.toFixed(2),
+		"humidity" : readout.humidity.toFixed(2),
+		"gas" : !gas.readSync()
+	};
+	return jsonData;
+}
+
+process.on('SIGINT', function () { //on ctrl+c
+	gas.unexport();		// Unexport GPIO to free resources
+	process.exit(); 		//exit completely
+});
+-------------------------------------------------------------------
+
+
+		leds.js file
+-------------------------------------------------------------------
+var Gpio = require('onoff').Gpio; //include onoff to interact with the GPIO
+var kitchenLed = new Gpio(26, 'out'); //use GPIO pin 4, and specify that it is output
+var bedroomLed = new Gpio(13, 'out');
+var livingLed = new Gpio(19, 'out'); 
+var exports = module.exports = {};
+
+exports.turnKitchenLed = function(value) {
+	if (kitchenLed.readSync() !== value) { 
+    		kitchenLed.writeSync(parseInt(value));
+	}
+}
+
+exports.turnBedroomLed = function(value) {
+	if (bedroomLed.readSync() !== value) { 
+    		bedroomLed.writeSync(parseInt(value));
+	}
+	console.log('value:'+value);
+}
+
+exports.turnLivingLed = function(value) {
+	if (livingLed.readSync() !== value) { 
+    		livingLed.writeSync(parseInt(value));
+	}
+}
+
+process.on('SIGINT', function () { //on ctrl+c
+	kitchenLed.writeSync(0);	// Turn LEDs off
+	bedroomLed.writeSync(0);
+	livingLed.writeSync(0);
+	kitchenLed.unexport();		// Unexport GPIO to free resources
+	bedroomLed.unexport();	
+	livingLed.unexport();	
+	process.exit(); 		//exit completely
+});
+-------------------------------------------------------------------------

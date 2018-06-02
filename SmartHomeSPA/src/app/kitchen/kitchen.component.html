@@ -1,0 +1,32 @@
+<div class="card" style="width: 18rem;margin:10px">
+    <img width="290" height="160"  class="card-img-top" src="https://hips.hearstapps.com/hbu.h-cdn.co/assets/17/03/nina-farmer-kitchen.jpg" alt="Card image cap">
+    <div (click)="togglePannel()" style="cursor:pointer" class="card-body">
+       <i style="float:left;padding-right:10px;padding-top:5px"  [ngClass]="!isToggle ? 'fa fa-caret-down fa-1x':'fa fa-caret-right fa-1x'"></i>
+      <h5 style="float:left" class="card-title">Kitchen</h5>
+    </div>
+    <ul *ngIf="!isToggle" style="transition:0.2ms" class="list-group list-group-flush">
+      <li class="list-group-item">Temperature: {{temperature}} °C</li>
+      <li class="list-group-item">Humidity: {{humidity}}%</li>
+      <li class="list-group-item">
+        <i style="padding-right:5px" [ngClass]="!checkGas ? 'fa fa-check-circle fa-2x':'fa fa-exclamation-triangle fa-2x'" ></i><span >Gas Detection Status: {{checkStatusGas()}}</span> </li>
+      <li class="list-group-item">
+            <div class="checkbox checbox-switch switch-primary">
+              <label style="cursor:pointer" >
+                  <input (click)="onClick()" type="checkbox" />
+                  <span></span>
+                  Lights (On/Off)                                        
+              </label>
+           </div>
+      </li>
+    <!--  <li class="list-group-item">
+        <div class="checkbox checbox-switch switch-primary">
+          <label (click)="onClick()">
+              <input type="checkbox" />
+              <span></span>
+              Fans (On/Off)                                        
+          </label>
+       </div>
+      </li>-->
+      
+    </ul>
+  </div>
